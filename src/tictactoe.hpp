@@ -21,7 +21,7 @@ public:
     TicTacToeState(std::array<int, 9> board, std::vector<int> legal_actions, Player player)
     : board(board), legal_actions(legal_actions), current_player(player) {}
 
-    std::vector<int> available_moves() const {
+    std::vector<int> available_moves(const std::array<int, 9> board) const {
         std::vector<int> moves;
         for (int i = 0; i < 9; ++i) {
             if (board[i] == EMPTY) moves.push_back(i);
@@ -50,7 +50,7 @@ public:
     TicTacToeState step(int action) const {
         std::array<int, 9> next_board = board;
         next_board[action] = current_player;
-        std::vector<int> next_legal_actions = available_moves();
+        std::vector<int> next_legal_actions = available_moves(next_board);
         Player next_player = (current_player == X ? O : X);
 
         return TicTacToeState {

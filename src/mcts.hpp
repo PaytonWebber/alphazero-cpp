@@ -47,7 +47,7 @@ public:
     : net(network), C(C), simulations(sims) {}
 
   template <typename State>
-  std::vector<float> search(State root_state) {
+  std::pair<int, std::vector<float>> search(State root_state) {
     std::shared_ptr<Node<State>> root = std::make_shared<Node<State>>(root_state, -1, 0.0, nullptr); 
     for (int s=0; s<simulations; ++s) {
       std::shared_ptr<Node<State>> leaf = select(root);
@@ -62,11 +62,17 @@ public:
     std::vector<float> action_probs(9, 0.0);
     float sumN = 0;
     for (auto& child : root->children) { sumN += child->N; }
-    if (sumN < 1e-6) sumN = 1e-6;
+    int best_move = 0;
+    float best_prob = 0.0; 
     for (auto& child : root->children) {
-      action_probs[child->action] = child->N / sumN;
+      float prob = child->N / sumN;
+      action_probs[child->action] = prob;
+      if (prob > best_prob) {
+        best_move = child->action;
+        best_prob = prob;
+      }
     }
-    return action_probs;
+    return {best_move, action_probs};
   }
 
   template <typename State>
