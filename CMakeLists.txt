@@ -7,7 +7,7 @@ set(CMAKE_PREFIX_PATH "libs/libtorch")
 find_package(Torch REQUIRED)
 include_directories(include src)
 
-add_executable(main src/main.cpp)
+add_executable(main src/main.cpp src/tictactoe.cpp)
 
 target_link_libraries(main "${TORCH_LIBRARIES}")
 set_property(TARGET main PROPERTY CXX_STANDARD 17)
