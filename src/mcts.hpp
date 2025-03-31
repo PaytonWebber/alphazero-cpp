@@ -57,7 +57,7 @@ public:
       } else {
         value = leaf->state.reward(leaf->state.current_player);
       }
-      backpropagate(leaf, value);
+      backpropagate(leaf, -value);
     }
     std::vector<float> action_probs(9, 0.0);
     float sumN = 0;
