@@ -2,15 +2,15 @@
 
 #include <torch/torch.h>
 
-struct TicTacToeNetImpl : torch::nn::Module {
+struct OthelloNetImpl : torch::nn::Module {
   torch::nn::Linear fc1{nullptr}, fc2{nullptr};
   torch::nn::Linear policy_head{nullptr}, value_head{nullptr};
 
-  TicTacToeNetImpl() {
-    fc1 = register_module("fc1", torch::nn::Linear(9, 64));
-    fc2 = register_module("fc2", torch::nn::Linear(64, 64));
-    policy_head = register_module("policy_head", torch::nn::Linear(64, 9));
-    value_head  = register_module("value_head",  torch::nn::Linear(64, 1));
+  OthelloNetImpl() {
+    fc1 = register_module("fc1", torch::nn::Linear(64, 128));
+    fc2 = register_module("fc2", torch::nn::Linear(128, 128));
+    policy_head = register_module("policy_head", torch::nn::Linear(128, 64));
+    value_head  = register_module("value_head",  torch::nn::Linear(128, 1));
   }
 
   std::pair<torch::Tensor, torch::Tensor> forward(torch::Tensor x) {
@@ -21,4 +21,4 @@ struct TicTacToeNetImpl : torch::nn::Module {
     return {policy_logits, value};
   }
 };
-TORCH_MODULE(TicTacToeNet);
+TORCH_MODULE(OthelloNet);

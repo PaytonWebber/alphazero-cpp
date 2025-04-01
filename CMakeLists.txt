@@ -7,6 +7,7 @@ set(CMAKE_PREFIX_PATH "libs/libtorch")
 find_package(Torch REQUIRED)
 include_directories(include src)
 
+# add_executable(main_test src/main_test.cpp)
 add_executable(main_infer src/main_inference.cpp src/tictactoe.cpp)
 add_executable(main_train src/main_train.cpp src/tictactoe.cpp)
 

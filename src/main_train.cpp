@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <array>
 #include <ctime>
 #include <filesystem>
 #include <iomanip>
@@ -10,11 +9,11 @@
 
 #include "mcts.hpp"
 #include "nn.hpp"
-#include "tictactoe.hpp"
+#include "othello.hpp"
 #include <torch/torch.h>
 
 struct TrainingSample {
-  std::array<int, 9> state;
+  std::vector<float> state;
   std::vector<float> policy;
   float outcome;
 };
@@ -25,7 +24,7 @@ int sample_from_policy(const std::vector<float> &policy) {
   return dist(gen);
 }
 
-void train_network(TicTacToeNet &net, const std::vector<TrainingSample> &buffer,
+void train_network(OthelloNet &net, const std::vector<TrainingSample> &buffer,
                    int epochs, int batch_size) {
   net->train();
   torch::optim::Adam optimizer(net->parameters(),
@@ -60,7 +59,7 @@ void train_network(TicTacToeNet &net, const std::vector<TrainingSample> &buffer,
 
         std::vector<float> state_vec(buffer[idx].state.begin(),
                                      buffer[idx].state.end());
-        auto state_tensor = torch::tensor(state_vec).reshape({9});
+        auto state_tensor = torch::tensor(state_vec).reshape({64});
         state_tensors.push_back(state_tensor);
 
         auto policy_tensor = torch::tensor(buffer[idx].policy);
@@ -122,7 +121,7 @@ int main(int argc, char* argv[]) {
 
   std::filesystem::create_directories(checkpoint_dir);
 
-  TicTacToeNet net = TicTacToeNet();
+  OthelloNet net = OthelloNet();
 
   if (argc > 1) {
     const std::string checkpoint_path = argv[1];
@@ -137,16 +136,16 @@ int main(int argc, char* argv[]) {
     for (int game = 0; game < games_per_iteration; ++game) {
       std::vector<TrainingSample> game_samples;
       std::vector<Player> sample_players;
-      TicTacToeState state;
+      OthelloState state;
 
+      MCTS mcts(net, 1.414, 100);
       while (!state.is_terminal()) {
-        MCTS mcts(net, 1.414, 100);
         auto [_, policy] = mcts.search(state);
 
         int action = sample_from_policy(policy);
 
         TrainingSample sample;
-        sample.state = state.board;
+        sample.state = state.board();
         sample.policy = policy;
         sample.outcome = 0; // Outcome will be determined after the game.
         game_samples.push_back(sample);
@@ -155,10 +154,10 @@ int main(int argc, char* argv[]) {
         state = state.step(action);
       }
 
-      int outcome = state.reward(X);
+      int outcome = state.reward(Player::Black);
 
       for (size_t i = 0; i < game_samples.size(); ++i) {
-        game_samples[i].outcome = (sample_players[i] == X) ? outcome : -outcome;
+        game_samples[i].outcome = (sample_players[i] == Player::Black) ? outcome : -outcome;
         replay_buffer.push_back(game_samples[i]);
       }
     }

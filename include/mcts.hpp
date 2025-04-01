@@ -40,11 +40,11 @@ struct Node {
 
 class MCTS {
 public:
-  TicTacToeNet net;
+  OthelloNet net;
   float C;
   int simulations;
 
-  MCTS(TicTacToeNet network, float C = 1.414, int sims = 100)
+  MCTS(OthelloNet network, float C = 1.414, int sims = 100)
     : net(network), C(C), simulations(sims)
   {}
 
@@ -61,14 +61,15 @@ public:
       }
       backpropagate(leaf, -value);
     }
-    std::vector<float> action_probs(9, 0.0);
+    std::vector<float> action_probs(64, 0.0);
     float sumN = 0;
     for (auto& child : root->children) { 
       sumN += child->N; 
     }
-    int best_move = 0;
+    int best_move = -1;
     float best_prob = 0.0;
     for (auto& child : root->children) {
+      if (child->action < 0) { continue; } // pass move
       float prob = child->N / sumN;
       action_probs[child->action] = prob;
       if (prob > best_prob) {
@@ -100,17 +101,21 @@ public:
   float expand_and_evaluate(std::shared_ptr<Node<State>> leaf) {
     State state = leaf->state;
 
-    torch::Tensor input = torch::tensor(std::vector<float>(state.board.begin(), state.board.end())).reshape({1, 9});
+    torch::Tensor input = torch::tensor(state.board()).reshape({1, 64});
     input = input.to(torch::kF32);
     auto [policy_logits, value_tensor] = net->forward(input);
     auto policy_probs = torch::softmax(policy_logits, /*dim=*/1).flatten();
     float value = value_tensor.item<float>();
 
-    std::vector<int> actions = state.legal_actions;
+    std::vector<int> actions = state.legal_actions();
     for (int action : actions) {
       State next_state = state.step(action);
-      float prior = policy_probs[action].item<float>();
-      auto child_node = std::make_shared<Node<State>>(next_state, action, prior, leaf.get());
+      float prior = 0.0f;
+      if (action != -1) {
+        prior = policy_probs[action].item<float>();
+      }
+      auto child_node =
+          std::make_shared<Node<State>>(next_state, action, prior, leaf.get());
       leaf->children.push_back(child_node);
     }
     return value;
