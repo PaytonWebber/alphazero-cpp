@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "mcts.hpp"
-#include "nn.hpp"
+#include "az_net.hpp"
 #include "othello.hpp"
 #include <torch/torch.h>
 
@@ -24,7 +24,7 @@ int sample_from_policy(const std::vector<float> &policy) {
   return dist(gen);
 }
 
-void train_network(OthelloNet &net, const std::vector<TrainingSample> &buffer,
+void train_network(AZNet &net, const std::vector<TrainingSample> &buffer,
                    int epochs, int batch_size) {
   net->train();
   torch::optim::Adam optimizer(net->parameters(),
@@ -59,7 +59,7 @@ void train_network(OthelloNet &net, const std::vector<TrainingSample> &buffer,
 
         std::vector<float> state_vec(buffer[idx].state.begin(),
                                      buffer[idx].state.end());
-        auto state_tensor = torch::tensor(state_vec).reshape({64});
+        auto state_tensor = torch::tensor(state_vec).reshape({2, 8, 8});
         state_tensors.push_back(state_tensor);
 
         auto policy_tensor = torch::tensor(buffer[idx].policy);
@@ -71,9 +71,9 @@ void train_network(OthelloNet &net, const std::vector<TrainingSample> &buffer,
       auto policy_batch = torch::stack(policy_tensors).to(torch::kF32);
       auto outcome_batch = torch::tensor(outcomes).to(torch::kF32).unsqueeze(1);
 
-      auto outputs = net->forward(state_batch);
-      auto policy_logits = std::get<0>(outputs);
-      auto value_pred = std::get<1>(outputs);
+      NetOutputs outputs = net->forward(state_batch);
+      auto policy_logits = outputs.pi;
+      auto value_pred = outputs.v;
 
       auto value_loss = torch::mse_loss(value_pred, outcome_batch);
       auto log_probs = torch::log_softmax(policy_logits, /*dim=*/1);
@@ -112,16 +112,16 @@ void train_network(OthelloNet &net, const std::vector<TrainingSample> &buffer,
 }
 
 int main(int argc, char* argv[]) {
-  const int num_iterations = 1000;    // Total training iterations.
-  const int games_per_iteration = 20; // Self-play games per iteration.
-  const int training_epochs = 5;      // How many epochs per training iteration.
+  const int num_iterations = 1000;    
+  const int games_per_iteration = 20; 
+  const int training_epochs = 5;      
   const int batch_size = 32;
-  const int checkpoint_interval = 50; // Save model every N iterations.
+  const int checkpoint_interval = 50; 
   const std::string checkpoint_dir = "models/";
 
   std::filesystem::create_directories(checkpoint_dir);
 
-  OthelloNet net = OthelloNet();
+  AZNet net = AZNet(2, 64, 64, 5);
 
   if (argc > 1) {
     const std::string checkpoint_path = argv[1];
@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
         TrainingSample sample;
         sample.state = state.board();
         sample.policy = policy;
-        sample.outcome = 0; // Outcome will be determined after the game.
+        sample.outcome = 0; // this will be updated once the game is finished
         game_samples.push_back(sample);
         sample_players.push_back(state.current_player);
 

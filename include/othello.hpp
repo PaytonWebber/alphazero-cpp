@@ -22,7 +22,7 @@ public:
   uint64_t bitboard_white;
 
   Player current_player;
-  unsigned pass_count; // number of consecutive passes (2 means game over).
+  unsigned pass_count; // number of consecutive passes (2 means game over)
 
   static const std::vector<int> &pass_vector() {
     static std::vector<int> pass_vector = {-1};
@@ -38,8 +38,7 @@ public:
   OthelloState()
       : bitboard_black(0), bitboard_white(0), current_player(Player::Black),
         pass_count(0) {
-    // Center positions:
-    // (3,3): White, (3,4): Black, (4,3): Black, (4,4): White.
+    // center positions
     set_cell(3, 3, Player::White);
     set_cell(3, 4, Player::Black);
     set_cell(4, 3, Player::Black);
@@ -89,29 +88,28 @@ public:
     Player p = current_player;
     Player opp = other(p);
 
-    // Place the piece.
     if (p == Player::Black) { new_state.bitboard_black |= mask; }
     else { new_state.bitboard_white |= mask; }
-
-    // for each direction, check for flips.
+    
+    // for each direction, check for flips
     for (auto d : directions()) {
       int dr = d.first, dc = d.second;
       int cur_r = r + dr, cur_c = c + dc;
       std::vector<int> positions_to_flip;
-      // the first cell in this direction must be an opponent piece.
+      // the first cell in this direction must be an opponent piece
       if (!on_board(cur_r, cur_c)) { continue; }
       if (get_cell(cur_r, cur_c) != cell_from_player(opp)) { continue; }
-      // collect consecutive opponent pieces.
+      // collect consecutive opponent pieces
       while (on_board(cur_r, cur_c) &&
              get_cell(cur_r, cur_c) == cell_from_player(opp)) {
         positions_to_flip.push_back(cur_r * SIZE + cur_c);
         cur_r += dr;
         cur_c += dc;
       }
-      // check if we end with one of our own pieces.
+      // check if we end with one of our own pieces
       if (on_board(cur_r, cur_c) &&
           get_cell(cur_r, cur_c) == cell_from_player(p)) {
-        // flip the collected opponent pieces.
+        // flip the collected opponent pieces
         for (int pos : positions_to_flip) {
           uint64_t posMask = 1ULL << pos;
           if (p == Player::Black) {
@@ -212,7 +210,8 @@ public:
         if (is_legal_move(r, c, player)) { actions.push_back(r * SIZE + c); }
       }
     }
-    if (actions.empty()) { actions.push_back(-1); } // Only legal move is a pass.
+    // NOTE: may need to change this to match the network's policy output
+    if (actions.empty()) { actions.push_back(-1); } // only legal move is a pass
     return actions;
   }
 
@@ -233,7 +232,7 @@ public:
       while (on_board(cur_r, cur_c)) {
         Cell cell = get_cell(cur_r, cur_c);
         if (cell == Cell::Empty) { break; }
-        if (cell == cell_from_player(player)) { return true; }// found a valid capture line.
+        if (cell == cell_from_player(player)) { return true; }// found a valid capture line
         cur_r += dr;
         cur_c += dc;
       }

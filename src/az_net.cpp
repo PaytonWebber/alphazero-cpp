@@ -41,13 +41,13 @@ NetOutputs AZNetImpl::forward(torch::Tensor x) {
   auto p = conv_p->forward(out);
   p = bn_p->forward(p);
   p = relu->forward(p);
-  p = p.flatten();
+  p = p.flatten(1);
   p = fc_p->forward(p);
   // value head
   auto v = conv_v->forward(out);
   v = bn_v->forward(v);
   v = relu->forward(v);
-  v = v.flatten();
+  v = v.flatten(1);
   v = fc1_v->forward(v);
   v = relu->forward(v);
   v = fc2_v->forward(v);
