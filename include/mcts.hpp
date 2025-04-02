@@ -8,7 +8,7 @@
 #include <limits>
 #include <algorithm>
 #include <torch/torch.h>
-#include "nn.hpp"
+#include "az_net.hpp"
 
 template <typename State>
 struct Node {
@@ -40,11 +40,11 @@ struct Node {
 
 class MCTS {
 public:
-  OthelloNet net;
+  AZNet net;
   float C;
   int simulations;
 
-  MCTS(OthelloNet network, float C = 1.414, int sims = 100)
+  MCTS(AZNet network, float C = 1.414, int sims = 100)
     : net(network), C(C), simulations(sims)
   {}
 
@@ -101,11 +101,11 @@ public:
   float expand_and_evaluate(std::shared_ptr<Node<State>> leaf) {
     State state = leaf->state;
 
-    torch::Tensor input = torch::tensor(state.board()).reshape({1, 64});
+    torch::Tensor input = torch::tensor(state.board()).reshape({2, 8, 8}).unsqueeze(0);
     input = input.to(torch::kF32);
-    auto [policy_logits, value_tensor] = net->forward(input);
-    auto policy_probs = torch::softmax(policy_logits, /*dim=*/1).flatten();
-    float value = value_tensor.item<float>();
+    NetOutputs outputs = net->forward(input);
+    auto policy_probs = torch::softmax(outputs.pi, /*dim=*/0).flatten();
+    float value = outputs.v.item<float>();
 
     std::vector<int> actions = state.legal_actions();
     for (int action : actions) {

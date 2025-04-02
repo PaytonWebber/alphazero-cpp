@@ -4,11 +4,11 @@
 
 #include "othello.hpp"  
 #include "mcts.hpp"       
-#include "nn.hpp"         
+#include "az_net.hpp"         
 
 
 int main(int argc, char* argv[]) {
-    OthelloNet net = OthelloNet();
+    AZNet net = AZNet(2, 64, 64, 5);
 
     if (argc > 1) {
         const std::string checkpoint_path = argv[1];

@@ -3,6 +3,7 @@
 #include <cinttypes>
 #include <iostream>
 #include <vector>
+#include <torch/torch.h>
 
 enum class Player { Black, White };
 
@@ -60,15 +61,15 @@ public:
     if (!is_terminal()) {
       return 0;
     }
-    int blackCount = __builtin_popcountll(bitboard_black);
-    int whiteCount = __builtin_popcountll(bitboard_white);
-    if (blackCount == whiteCount) {
+    int black_count = __builtin_popcountll(bitboard_black);
+    int white_count = __builtin_popcountll(bitboard_white);
+    if (black_count == white_count) {
       return 0;
     }
     if (to_play == Player::Black) {
-      return (blackCount > whiteCount) ? 1 : -1;
+      return (black_count > white_count) ? 1 : -1;
     } else {
-      return (whiteCount > blackCount) ? 1 : -1;
+      return (white_count > black_count) ? 1 : -1;
     }
   }
 
@@ -142,19 +143,30 @@ public:
       }
       std::cout << "\n";
     }
+    int black_count = __builtin_popcountll(bitboard_black);
+    int white_count = __builtin_popcountll(bitboard_white);
+    std::cout << "Current scores:\n"
+              << "Black - "
+              << black_count
+              << "\n"
+              << "White - "
+              << white_count
+              << "\n";
     std::cout << "Next to move: "
               << (current_player == Player::Black ? "Black (X)" : "White (O)")
               << "\n";
   }
 
   std::vector<float> board() const {
-    std::vector<float> rep(SIZE * SIZE, 0.0f);
-    for (int r = 0; r < SIZE; ++r) {
-      for (int c = 0; c < SIZE; ++c) {
-        int idx = r * SIZE + c;
-        Cell cell = get_cell(r, c);
-        if (cell == Cell::Black) { rep[idx] = 1.0f; }
-        else if (cell == Cell::White) { rep[idx] = -1.0f; }
+    std::vector<float> rep((SIZE * SIZE) * 2, 0.0); // two channels: one for each player's pieces
+    int black_offset = (current_player == Player::Black ? 0 : 64);
+    int white_offset = (current_player == Player::White ? 0 : 64);
+    for (int i = 0; i < (SIZE * SIZE); ++i) {
+      if ((bitboard_black >> i) & 1ULL) {
+        rep[i+black_offset] = 1.0;
+      }
+      if ((bitboard_white >> i) & 1ULL) {
+        rep[i+white_offset] = 1.0;
       }
     }
     return rep;

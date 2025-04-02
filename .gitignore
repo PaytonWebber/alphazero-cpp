@@ -1,2 +1,4 @@
 build/
 libs/
+.cache/
+compile_commands.json
