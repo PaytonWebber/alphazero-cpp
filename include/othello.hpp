@@ -56,19 +56,19 @@ public:
     return false;
   }
 
-  int reward(Player to_play) const {
+  float reward(Player to_play) const {
     if (!is_terminal()) {
       return 0;
     }
     int black_count = __builtin_popcountll(bitboard_black);
     int white_count = __builtin_popcountll(bitboard_white);
     if (black_count == white_count) {
-      return 0;
+      return 0.0;
     }
     if (to_play == Player::Black) {
-      return (black_count > white_count) ? 1 : -1;
+      return (black_count > white_count) ? 1.0 : -1.0;
     } else {
-      return (white_count > black_count) ? 1 : -1;
+      return (white_count > black_count) ? 1.0 : -1.0;
     }
   }
 
