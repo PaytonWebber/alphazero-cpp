@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "mcts.hpp"
+#include "az_mcts.hpp"
 #include "az_net.hpp"
 #include "othello.hpp"
 #include <torch/torch.h>

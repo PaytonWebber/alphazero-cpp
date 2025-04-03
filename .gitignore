@@ -1,4 +1,5 @@
 build/
 libs/
+models/
 .cache/
 compile_commands.json
