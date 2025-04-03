@@ -7,9 +7,27 @@
 #include <vector>
 #include <limits>
 #include <algorithm>
+#include <random>
 #include <ctime>
 #include <torch/torch.h>
 #include "az_net.hpp"
+
+std::vector<float> sample_dirichlet(float alpha, int size) {
+    static thread_local std::mt19937 rng(std::random_device{}());
+    std::gamma_distribution<float> gamma_dist(alpha, 1.0f);
+
+    std::vector<float> noise(size);
+    float sum = 0.0f;
+    for (int i = 0; i < size; ++i) {
+        float draw = gamma_dist(rng);
+        noise[i] = draw;
+        sum += draw;
+    }
+    for (int i = 0; i < size; ++i) {
+        noise[i] /= sum;
+    }
+    return noise;
+}
 
 template <typename State>
 struct Node {
@@ -61,6 +79,18 @@ public:
         value = expand_and_evaluate(leaf);
       } else {
         value = leaf->state.reward(leaf->state.current_player);
+      }
+      if (training && s == 0) {
+        float alpha = 0.3;
+        int N = root->children.size();
+        std::vector<float> dirichlet_vec = sample_dirichlet(alpha, N);
+        float epsilon = 0.25f;
+        for (int i = 0; i < N; ++i) {
+            float oldP = root->children[i]->P;  // original prior from the net
+            float noise = dirichlet_vec[i];
+            float newP = (1.0f - epsilon) * oldP + epsilon * noise;
+            root->children[i]->P = newP;
+        }
       }
       backpropagate(leaf, -value);
     }
