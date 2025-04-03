@@ -7,6 +7,7 @@
 #include <vector>
 #include <limits>
 #include <algorithm>
+#include <ctime>
 #include <torch/torch.h>
 #include "az_net.hpp"
 
@@ -40,17 +41,19 @@ struct Node {
 
 class MCTS {
 public:
-  AZNet net;
+  AZNet network;
   float C;
   int simulations;
+  bool training;
 
-  MCTS(AZNet network, float C = 1.414, int sims = 100)
-    : net(network), C(C), simulations(sims)
+  MCTS(AZNet net, float C = 1.414, int sims = 100, bool train = false)
+    : network(net), C(C), simulations(sims), training(train)
   {}
 
   template <typename State>
   std::pair<int, std::vector<float>> search(State root_state) {
     std::shared_ptr<Node<State>> root = std::make_shared<Node<State>>(root_state, -1, 0.0, nullptr);
+
     for (int s = 0; s < simulations; ++s) {
       std::shared_ptr<Node<State>> leaf = select(root);
       float value;
@@ -103,8 +106,8 @@ public:
 
     torch::Tensor input = torch::tensor(state.board()).reshape({2, 8, 8}).unsqueeze(0);
     input = input.to(torch::kF32);
-    NetOutputs outputs = net->forward(input);
-    auto policy_probs = torch::softmax(outputs.pi, /*dim=*/0).flatten();
+    NetOutputs outputs = network->forward(input);
+    auto policy_probs = torch::softmax(outputs.pi, /*dim=*/1).flatten();
     float value = outputs.v.item<float>();
 
     std::vector<int> actions = state.legal_actions();
@@ -122,7 +125,7 @@ public:
   }
 
   template <typename State>
-  void backpropagate(std::shared_ptr<Node<State>> node, int value) {
+  void backpropagate(std::shared_ptr<Node<State>> node, float value) {
     float v = value;
     Node<State>* cur = node.get();
     while (cur != nullptr) {
