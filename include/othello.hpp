@@ -5,6 +5,7 @@
 #include <vector>
 #include <torch/torch.h>
 
+
 enum class Player { Black, White };
 
 enum class Cell { Empty, Black, White };
@@ -16,6 +17,7 @@ Player other(Player p) {
 class OthelloState {
 public:
   static constexpr int SIZE = 8;
+  static constexpr int PASS = 64;
 
   // row-major order
   uint64_t bitboard_black;
@@ -74,7 +76,7 @@ public:
 
   OthelloState step(int action) const {
     OthelloState new_state(*this);
-    if (action == -1) {
+    if (action == PASS) {
       new_state.current_player = other(current_player);
       new_state.pass_count++;
       return new_state;
@@ -210,8 +212,7 @@ public:
         if (is_legal_move(r, c, player)) { actions.push_back(r * SIZE + c); }
       }
     }
-    // NOTE: may need to change this to match the network's policy output
-    if (actions.empty()) { actions.push_back(-1); } // only legal move is a pass
+    if (actions.empty()) { actions.push_back(PASS); } // only legal move is a pass
     return actions;
   }
 

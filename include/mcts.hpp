@@ -64,15 +64,14 @@ public:
       }
       backpropagate(leaf, -value);
     }
-    std::vector<float> action_probs(64, 0.0);
+    std::vector<float> action_probs(65, 0.0); // 8x8 board +1 for pass
     float sumN = 0;
     for (auto& child : root->children) { 
       sumN += child->N; 
     }
-    int best_move = -1;
+    int best_move = 65;
     float best_prob = 0.0;
     for (auto& child : root->children) {
-      if (child->action < 0) { continue; } // pass move
       float prob = child->N / sumN;
       action_probs[child->action] = prob;
       if (prob > best_prob) {
@@ -113,10 +112,7 @@ public:
     std::vector<int> actions = state.legal_actions();
     for (int action : actions) {
       State next_state = state.step(action);
-      float prior = 0.0f;
-      if (action != -1) {
-        prior = policy_probs[action].item<float>();
-      }
+      float prior = policy_probs[action].item<float>();
       auto child_node =
           std::make_shared<Node<State>>(next_state, action, prior, leaf.get());
       leaf->children.push_back(child_node);

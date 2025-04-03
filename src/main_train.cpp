@@ -19,7 +19,7 @@ struct TrainingSample {
 };
 
 std::vector<float> flip_horizontal_channel(const std::vector<float>& channel) {
-    std::vector<float> flipped(64, 0.0f);
+    std::vector<float> flipped(65, 0.0f);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             flipped[i * 8 + j] = channel[i * 8 + (7 - j)];
@@ -31,7 +31,7 @@ std::vector<float> flip_horizontal_channel(const std::vector<float>& channel) {
 std::vector<float> flip_horizontal_state(const std::vector<float>& state) {
     std::vector<float> flipped;
     for (int c = 0; c < 2; ++c) {
-        std::vector<float> channel(state.begin() + c * 64, state.begin() + (c + 1) * 64);
+        std::vector<float> channel(state.begin() + c * 65, state.begin() + (c + 1) * 65);
         std::vector<float> flipped_channel = flip_horizontal_channel(channel);
         flipped.insert(flipped.end(), flipped_channel.begin(), flipped_channel.end());
     }
@@ -39,7 +39,7 @@ std::vector<float> flip_horizontal_state(const std::vector<float>& state) {
 }
 
 std::vector<float> flip_horizontal_policy(const std::vector<float>& policy) {
-    std::vector<float> flipped(64, 0.0f);
+    std::vector<float> flipped(65, 0.0f);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             flipped[i * 8 + j] = policy[i * 8 + (7 - j)];
@@ -49,7 +49,7 @@ std::vector<float> flip_horizontal_policy(const std::vector<float>& policy) {
 }
 
 std::vector<float> rotate_90_channel(const std::vector<float>& channel) {
-    std::vector<float> rotated(64, 0.0);
+    std::vector<float> rotated(65, 0.0);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             rotated[j * 8 + (7 - i)] = channel[i * 8 + j];
@@ -61,7 +61,7 @@ std::vector<float> rotate_90_channel(const std::vector<float>& channel) {
 std::vector<float> rotate_90_state(const std::vector<float>& state) {
     std::vector<float> rotated_state;
     for (int c = 0; c < 2; ++c) {
-        std::vector<float> channel(state.begin() + c * 64, state.begin() + (c + 1) * 64);
+        std::vector<float> channel(state.begin() + c * 65, state.begin() + (c + 1) * 65);
         std::vector<float> rotated_channel = rotate_90_channel(channel);
         rotated_state.insert(rotated_state.end(), rotated_channel.begin(), rotated_channel.end());
     }
@@ -69,7 +69,7 @@ std::vector<float> rotate_90_state(const std::vector<float>& state) {
 }
 
 std::vector<float> rotate_90_policy(const std::vector<float>& policy) {
-  std::vector<float> rotated_policy(64, 0.0f);
+  std::vector<float> rotated_policy(65, 0.0f);
   for (int i = 0; i < 8; ++i) {
     for (int j = 0; j < 8; ++j) {
       rotated_policy[j * 8 + (7 - i)] = policy[i * 8 + j];
@@ -207,7 +207,7 @@ int main(int argc, char* argv[]) {
 
   std::filesystem::create_directories(checkpoint_dir);
 
-  AZNet net = AZNet(2, 64, 64, 5);
+  AZNet net = AZNet(2, 64, 65, 5);
 
   if (argc > 1) {
     const std::string checkpoint_path = argv[1];
@@ -243,8 +243,9 @@ int main(int argc, char* argv[]) {
       int outcome = state.reward(Player::Black);
       for (size_t i = 0; i < game_samples.size(); ++i) {
         game_samples[i].outcome = (sample_players[i] == Player::Black) ? outcome : -outcome;
-        std::vector<TrainingSample> augmented_samples = augment_sample(game_samples[i]);
-        replay_buffer.insert(replay_buffer.end(), augmented_samples.begin(), augmented_samples.end());
+        // std::vector<TrainingSample> augmented_samples = augment_sample(game_samples[i]);
+        // replay_buffer.insert(replay_buffer.end(), augmented_samples.begin(), augmented_samples.end());
+        replay_buffer.push_back(game_samples[i]);
       }
     }
 
