@@ -18,6 +18,92 @@ struct TrainingSample {
   float outcome;
 };
 
+std::vector<float> flip_horizontal_channel(const std::vector<float>& channel) {
+    std::vector<float> flipped(64, 0.0f);
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            flipped[i * 8 + j] = channel[i * 8 + (7 - j)];
+        }
+    }
+    return flipped;
+}
+
+std::vector<float> flip_horizontal_state(const std::vector<float>& state) {
+    std::vector<float> flipped;
+    for (int c = 0; c < 2; ++c) {
+        std::vector<float> channel(state.begin() + c * 64, state.begin() + (c + 1) * 64);
+        std::vector<float> flipped_channel = flip_horizontal_channel(channel);
+        flipped.insert(flipped.end(), flipped_channel.begin(), flipped_channel.end());
+    }
+    return flipped;
+}
+
+std::vector<float> flip_horizontal_policy(const std::vector<float>& policy) {
+    std::vector<float> flipped(64, 0.0f);
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            flipped[i * 8 + j] = policy[i * 8 + (7 - j)];
+        }
+    }
+    return flipped;
+}
+
+std::vector<float> rotate_90_channel(const std::vector<float>& channel) {
+    std::vector<float> rotated(64, 0.0);
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < 8; ++j) {
+            rotated[j * 8 + (7 - i)] = channel[i * 8 + j];
+        }
+    }
+    return rotated;
+}
+
+std::vector<float> rotate_90_state(const std::vector<float>& state) {
+    std::vector<float> rotated_state;
+    for (int c = 0; c < 2; ++c) {
+        std::vector<float> channel(state.begin() + c * 64, state.begin() + (c + 1) * 64);
+        std::vector<float> rotated_channel = rotate_90_channel(channel);
+        rotated_state.insert(rotated_state.end(), rotated_channel.begin(), rotated_channel.end());
+    }
+    return rotated_state;
+}
+
+std::vector<float> rotate_90_policy(const std::vector<float>& policy) {
+  std::vector<float> rotated_policy(64, 0.0f);
+  for (int i = 0; i < 8; ++i) {
+    for (int j = 0; j < 8; ++j) {
+      rotated_policy[j * 8 + (7 - i)] = policy[i * 8 + j];
+    }
+  }
+  return rotated_policy;
+}
+
+std::vector<TrainingSample> augment_sample(const TrainingSample &sample) {
+    std::vector<TrainingSample> augmented_samples;
+    augmented_samples.push_back(sample);
+
+    TrainingSample rotated_sample = sample;
+    for (int i = 0; i < 3; ++i) {
+        rotated_sample.state = rotate_90_state(rotated_sample.state);
+        rotated_sample.policy = rotate_90_policy(rotated_sample.policy);
+        augmented_samples.push_back(rotated_sample);
+    }
+
+    TrainingSample flipped_sample = sample;
+    flipped_sample.state = flip_horizontal_state(sample.state);
+    flipped_sample.policy = flip_horizontal_policy(sample.policy);
+    augmented_samples.push_back(flipped_sample);
+
+    TrainingSample rotated_flipped = flipped_sample;
+    for (int i = 0; i < 3; ++i) {
+        rotated_flipped.state = rotate_90_state(rotated_flipped.state);
+        rotated_flipped.policy = rotate_90_policy(rotated_flipped.policy);
+        augmented_samples.push_back(rotated_flipped);
+    }
+
+    return augmented_samples;
+}
+
 int sample_from_policy(const std::vector<float> &policy) {
   static std::mt19937 gen(static_cast<unsigned int>(std::time(nullptr)));
   std::discrete_distribution<> dist(policy.begin(), policy.end());
@@ -31,8 +117,7 @@ void train_network(AZNet &net, const std::vector<TrainingSample> &buffer,
                                torch::optim::AdamOptions(1e-3));
 
   size_t num_samples = buffer.size();
-  if (num_samples == 0)
-    return;
+  if (num_samples == 0) { return; }
 
   for (int epoch = 0; epoch < epochs; ++epoch) {
     float epoch_value_loss = 0.0f;
@@ -41,8 +126,9 @@ void train_network(AZNet &net, const std::vector<TrainingSample> &buffer,
     int num_batches = 0;
 
     std::vector<size_t> indices(num_samples);
-    for (size_t i = 0; i < num_samples; ++i)
+    for (size_t i = 0; i < num_samples; ++i) {
       indices[i] = i;
+    }
     std::shuffle(indices.begin(), indices.end(),
                  std::mt19937{std::random_device{}()});
 
@@ -115,7 +201,7 @@ int main(int argc, char* argv[]) {
   const int num_iterations = 1000;    
   const int games_per_iteration = 20; 
   const int training_epochs = 5;      
-  const int batch_size = 32;
+  const int batch_size = 64;
   const int checkpoint_interval = 50; 
   const std::string checkpoint_dir = "models/";
 
@@ -130,6 +216,7 @@ int main(int argc, char* argv[]) {
   }
   std::vector<TrainingSample> replay_buffer;
 
+  MCTS mcts(net, 1.414, 100, true);
   for (int iter = 1; iter <= num_iterations; ++iter) {
     std::cout << "Training Iteration " << iter << std::endl;
 
@@ -138,7 +225,6 @@ int main(int argc, char* argv[]) {
       std::vector<Player> sample_players;
       OthelloState state;
 
-      MCTS mcts(net, 1.414, 100);
       while (!state.is_terminal()) {
         auto [_, policy] = mcts.search(state);
 
@@ -155,10 +241,10 @@ int main(int argc, char* argv[]) {
       }
 
       int outcome = state.reward(Player::Black);
-
       for (size_t i = 0; i < game_samples.size(); ++i) {
         game_samples[i].outcome = (sample_players[i] == Player::Black) ? outcome : -outcome;
-        replay_buffer.push_back(game_samples[i]);
+        std::vector<TrainingSample> augmented_samples = augment_sample(game_samples[i]);
+        replay_buffer.insert(replay_buffer.end(), augmented_samples.begin(), augmented_samples.end());
       }
     }
 
