@@ -107,7 +107,7 @@ std::vector<TrainingSample> augment_sample(const TrainingSample &sample) {
 }
 
 int sample_from_policy(const std::vector<float> &policy) {
-  static std::mt19937 gen(static_cast<unsigned int>(std::time(nullptr)));
+  static std::mt19937 gen(std::random_device{}());
   std::discrete_distribution<> dist(policy.begin(), policy.end());
   return dist(gen);
 }
