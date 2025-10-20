@@ -59,7 +59,7 @@ NetOutputs AZNetImpl::forward(torch::Tensor x) {
 
 torch::nn::Sequential make_blocks(int64_t channels, int64_t blocks) {
   torch::nn::Sequential layers;
-  for (int64_t i = 1; i != blocks; ++i) {
+  for (int64_t i = 0; i < blocks; ++i) {
     layers->push_back(ResidualBlock(channels, channels));
   }
   return layers;

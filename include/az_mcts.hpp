@@ -96,11 +96,22 @@ public:
     }
     std::vector<float> action_probs(65, 0.0); // 8x8 board +1 for pass
     float sumN = 0;
-    for (auto& child : root->children) { 
-      sumN += child->N; 
+    for (auto& child : root->children) {
+      sumN += child->N;
     }
     int best_move = 65;
     float best_prob = 0.0;
+    // Safety check: if sumN is 0, return uniform probabilities
+    if (sumN == 0 || root->children.empty()) {
+      if (!root->children.empty()) {
+        float uniform_prob = 1.0f / root->children.size();
+        for (auto& child : root->children) {
+          action_probs[child->action] = uniform_prob;
+        }
+        best_move = root->children[0]->action;
+      }
+      return {best_move, action_probs};
+    }
     for (auto& child : root->children) {
       float prob = child->N / sumN;
       action_probs[child->action] = prob;

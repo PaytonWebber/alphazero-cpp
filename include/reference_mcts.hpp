@@ -46,13 +46,16 @@ public:
 
   template <typename State>
   std::pair<int, std::vector<float>> search(State root_state) {
-    std::shared_ptr<RefNode<State>> root = std::make_shared<RefNode<State>>(root_state, -1, nullptr); 
+    std::shared_ptr<RefNode<State>> root = std::make_shared<RefNode<State>>(root_state, -1, nullptr);
     for (int s=0; s<simulations; ++s) {
       std::shared_ptr<RefNode<State>> leaf = select(root);
       float value;
       if (!leaf->state.is_terminal()) {
         expand(leaf);
-        std::shared_ptr<RefNode<State>> child = leaf->children[0];
+        // Randomly select a child for simulation instead of always using first
+        std::uniform_int_distribution<> dist(0, leaf->children.size() - 1);
+        int child_idx = dist(gen);
+        std::shared_ptr<RefNode<State>> child = leaf->children[child_idx];
         value = simulate(child);
         leaf = child;
       } else {
@@ -64,7 +67,18 @@ public:
     float sumN = 0;
     for (auto& child : root->children) { sumN += child->N; }
     int best_move = 64;
-    float best_prob = 0.0; 
+    float best_prob = 0.0;
+    // Safety check: if sumN is 0, return uniform probabilities
+    if (sumN == 0 || root->children.empty()) {
+      if (!root->children.empty()) {
+        float uniform_prob = 1.0f / root->children.size();
+        for (auto& child : root->children) {
+          action_probs[child->action] = uniform_prob;
+        }
+        best_move = root->children[0]->action;
+      }
+      return {best_move, action_probs};
+    }
     for (auto& child : root->children) {
       float prob = child->N / sumN;
       action_probs[child->action] = prob;
