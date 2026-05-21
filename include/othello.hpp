@@ -27,7 +27,7 @@ public:
   unsigned pass_count; // number of consecutive passes (2 means game over)
 
   static const std::vector<int> &pass_vector() {
-    static std::vector<int> pass_vector = {-1};
+    static std::vector<int> pass_vector = {PASS};
     return pass_vector;
   }
   static const std::vector<std::pair<int, int>> &directions() {
