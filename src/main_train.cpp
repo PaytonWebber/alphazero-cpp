@@ -50,7 +50,7 @@ std::vector<float> flip_horizontal_policy(const std::vector<float>& policy) {
 }
 
 std::vector<float> rotate_90_channel(const std::vector<float>& channel) {
-    std::vector<float> rotated(64, 0.0);
+    std::vector<float> rotated(64, 0.0f);
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             rotated[j * 8 + (7 - i)] = channel[i * 8 + j];
