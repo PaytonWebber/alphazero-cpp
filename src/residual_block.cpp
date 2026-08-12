@@ -3,7 +3,7 @@
 ResidualBlockImpl::ResidualBlockImpl(int64_t in_channels, int64_t out_channels, int64_t stride) :
   conv1(conv3x3(in_channels, out_channels, stride)),
   bn1(out_channels),
-  conv2(conv3x3(in_channels, out_channels, stride)),
+  conv2(conv3x3(out_channels, out_channels, stride)),
   bn2(out_channels) {
   register_module("conv1", conv1);
   register_module("bn1", bn1);
